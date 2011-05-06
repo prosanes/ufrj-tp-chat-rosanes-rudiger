@@ -20,8 +20,6 @@ public:
     serverSocket(int portNum);
     void listenConnections(void);
     int acceptConnection(struct sockaddr_in& client_addr, socklen_t& clilen);
-
-
 };
 
 #endif

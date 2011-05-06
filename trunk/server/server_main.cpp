@@ -32,7 +32,7 @@ void* envia_para_todos_clientes(void *);
 //Declaracoes
 int main (void)
 {
-    serverSocket ss(2101);
+    serverSocket ss(2102);
     pthread_t thread_envio;
 
     sem_init(&clients_mutex,    0, 1);
