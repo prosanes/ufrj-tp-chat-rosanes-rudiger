@@ -5,10 +5,14 @@ grupoClientes::grupoClientes()
     sem_init(&mutex, 0, 1);
 }
 
-void grupoClientes::insere(client_info* novo)
+void grupoClientes::insere(std::string id, client_info* cliente)
 {
     sem_wait(&mutex);
-        client.push_back(novo);
+        while (client.find(id) != client.end())
+        {
+            id += '0';
+        }
+        client[id] = cliente;
     sem_post(&mutex);
 }
 
@@ -21,11 +25,14 @@ int grupoClientes::size()
     return ret;
 }
 
-int grupoClientes::getSocket(int i)
+int grupoClientes::getSocket(std::string id)
 {
     int ret = -1;
     sem_wait(&mutex);
-        ret = client[i]->socket;
+        if (client.find(id) != client.end())
+        {
+            ret = client[id]->socket;
+        }
     sem_post(&mutex);
     return ret;
 }
@@ -36,14 +43,19 @@ void grupoClientes::enviaParaTodos(std::string msg)
     const char *buffer = msg.c_str();
     int size = msg.length();
 
-    for(std::vector<client_info*>::iterator i = client.begin();
-        i < client.end(); ++i)
+    std::map<std::string, client_info*>::iterator i;
+    for(i = client.begin(); i != client.end(); ++i)
     {
-        if ((*i)->connected)
-        {
-            write((*i)->socket, buffer, size);
-        }
+        client_info* client_atual = (*i).second;
+        write(client_atual->socket, buffer, size);
     }
+    sem_post(&mutex);
+}
+
+void grupoClientes::remove(std::string id)
+{
+    sem_wait(&mutex);
+        client.erase(id);
     sem_post(&mutex);
 }
 

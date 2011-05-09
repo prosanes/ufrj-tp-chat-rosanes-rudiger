@@ -2,6 +2,8 @@
 
 clientSocket::clientSocket(int portNum, char* hostname)
 {
+    this->connected = false;
+
     this->portNum = portNum;
 
     int i;
@@ -27,26 +29,60 @@ clientSocket::clientSocket(int portNum, char* hostname)
 
 void clientSocket::connectToServer(void)
 {
+    if (connected)
+    {
+        printf("Tentando conectar sem estar conectado\n");
+        return;
+    }
+
     if (connect(socketv,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
+    {
         printf("ERROR connecting\n");
+        connected = false;
+        return ;
+    }
+
+    connected = true;
 }
 
 void clientSocket::send(char* msg)
 {
+    if (!connected)
+    {
+        printf("Tetando enviar sem estar conectado\n");
+        return;
+    }
+
     if( write(socketv,msg,strlen(msg)) < 0)
         printf("ERROR escrevendo\n");
 }
 
 char* clientSocket::receive(void)
 {
-    if ( read(socketv,buffer,255) < 0)
+    if (!connected)
+    {
+        printf("Tentando receber sem estar conectado\n");
+        return NULL;
+    }
+
+    int size = read(socketv,buffer,255);
+    if (size < 0)
         printf("ERROR recebendo\n");
+    else
+        buffer[size] = '\0';
 
     return buffer;
 }
 
 void clientSocket::closeConnection(void)
 {
+    if (!connected)
+        return;
+    connected = false;
     close(socketv);
 }
 
+bool clientSocket::isConnected()
+{
+    return connected;
+}
