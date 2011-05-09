@@ -14,6 +14,7 @@
 class clientSocket
 {
 private:
+    bool connected;
     int socketv;
     int portNum;
     char hostname[256];
@@ -27,6 +28,7 @@ public:
     void send(char* msg);
     char* receive(void);
     void closeConnection(void);
+    bool isConnected();
 };
 
 #endif

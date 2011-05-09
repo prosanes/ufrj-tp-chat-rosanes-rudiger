@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
-#include <vector>
+#include <map>
 #include <string>
 #include "serverSocket.h"
 
@@ -19,15 +19,16 @@ struct client_info
 class grupoClientes
 {
 private:
-    std::vector<client_info*> client;
+    std::map<std::string, client_info*> client;
     sem_t mutex;
     
 public:
     grupoClientes();
-    void insere(client_info*);
+    void insere(std::string, client_info*);
     int size();
-    int getSocket(int i);
+    int getSocket(std::string id);
     void enviaParaTodos(std::string msg);
+    void remove(std::string id);
 };
     
 

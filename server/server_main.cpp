@@ -43,15 +43,21 @@ int main (int argc, char *argv[])
     {
         client_info* client_mais_recente = new client_info;
 
-        client_mais_recente ->socket = ss.acceptConnection(client_mais_recente ->client_addr, client_mais_recente ->socketlen);
+        //Aceita conexao
+        client_mais_recente->socket = ss.acceptConnection(client_mais_recente ->client_addr, client_mais_recente->socketlen);
         client_mais_recente->connected = true;
 
-        clientes.insere(client_mais_recente); 
+        char char_buffer[MAX_MSG];
+        bzero(char_buffer,MAX_MSG);
+        read(client_mais_recente->socket,char_buffer,MAX_MSG-1);
+        printf("Cliente %s conectou-se\n", char_buffer);
+
+        clientes.insere(std::string(char_buffer), client_mais_recente); 
         
         //Cria thread para receber mensages dos cliente
         pthread_create( &(client_mais_recente ->tid), NULL, 
                         recebe_mensagem, //Funcao executada pela thread
-                        (void *) &(client_mais_recente ->socket)); //Parametro usado pela funcao
+                        (void *) char_buffer); //Parametro usado pela funcao
     }
 
     return 0;
@@ -76,11 +82,12 @@ void* envia_para_todos_clientes(void *)
     return NULL;
 }
 
-void* recebe_mensagem(void *socketp)
+void* recebe_mensagem(void *nome)
 {
     char char_buffer[MAX_MSG];
-    int* socketfdp = (int*) socketp;
-    int socketfd = *socketfdp;
+
+    std::string id( (char*) nome );
+    int socketfd = clientes.getSocket(id);
 
     while(1)
     {
@@ -89,15 +96,21 @@ void* recebe_mensagem(void *socketp)
         bzero(char_buffer,MAX_MSG);
         if (read(socketfd,char_buffer,MAX_MSG-1) <= 0)
         {
+            printf("Erro recebendo\n");
             return NULL;
         }
 
         if (char_buffer[0] == '\\' && char_buffer[1] == 'c')
         {
+            clientes.remove(id);
+            close(socketfd);
             printf("Cliente fechou conexao\n");
+            return NULL;
         }
 
-        std::string string_buffer(char_buffer);
+        //std::string string_buffer(char_buffer);
+        std::string string_buffer = id + ": " + char_buffer;
+
         sem_wait(&mensagens_mutex);
             mensagens.push(string_buffer);
         sem_post(&mensagens_mutex);
@@ -106,5 +119,5 @@ void* recebe_mensagem(void *socketp)
 
     }
 
-    return socketp;
+    return NULL;
 }
