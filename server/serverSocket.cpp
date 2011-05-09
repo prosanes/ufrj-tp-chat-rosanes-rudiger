@@ -14,6 +14,10 @@ serverSocket::serverSocket(int portNum)
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(this->portNum);
 
+    int tr = 1;
+    if ( setsockopt(socketv, SOL_SOCKET, SO_REUSEADDR, &tr, sizeof(int)) == -1)
+        printf("error no setsockopt\n");
+
     //Liga o socket a estrutura serv_addr
     bind(socketv, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
         //Detectar erro no retorno

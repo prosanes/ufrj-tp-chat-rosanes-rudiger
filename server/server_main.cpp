@@ -1,4 +1,6 @@
 #include "serverSocket.h"
+#include "grupoClientes.h"
+#include <stdlib.h>
 #include <iostream>
 #include <pthread.h>
 #include <semaphore.h>
@@ -8,20 +10,10 @@
 
 //Defines
 #define MAX_MSG 256
-
-//Estruturas
-struct client_info
-{
-    pthread_t tid;
-    int socket;
-    struct sockaddr_in client_addr;
-    socklen_t socketlen;
-};
     
 //Var globais
-std::vector<client_info*> clients;
+grupoClientes clientes;
 std::queue<std::string> mensagens;
-sem_t clients_mutex;
 sem_t mensagens_mutex;
 sem_t mensagens_sinc;
 
@@ -30,12 +22,12 @@ void* recebe_mensagem(void *socketp);
 void* envia_para_todos_clientes(void *);
 
 //Declaracoes
-int main (void)
+int main (int argc, char *argv[])
 {
-    serverSocket ss(2102);
+    printf("Usage: ./server porta\n");
+    serverSocket ss(atoi(argv[1]));
     pthread_t thread_envio;
 
-    sem_init(&clients_mutex,    0, 1);
     sem_init(&mensagens_mutex,  0, 1);
     sem_init(&mensagens_sinc,   0, 0);
 
@@ -52,10 +44,9 @@ int main (void)
         client_info* client_mais_recente = new client_info;
 
         client_mais_recente ->socket = ss.acceptConnection(client_mais_recente ->client_addr, client_mais_recente ->socketlen);
+        client_mais_recente->connected = true;
 
-        sem_wait(&clients_mutex);
-            clients.push_back(client_mais_recente );
-        sem_post(&clients_mutex);
+        clientes.insere(client_mais_recente); 
         
         //Cria thread para receber mensages dos cliente
         pthread_create( &(client_mais_recente ->tid), NULL, 
@@ -73,34 +64,13 @@ void* envia_para_todos_clientes(void *)
         //Sincronizacao de mensagens
         sem_wait(&mensagens_sinc);
 
-        sem_wait(&clients_mutex);
-            int clients_size = clients.size();
-        sem_post(&clients_mutex);
-
         sem_wait(&mensagens_mutex);
-            bool empty = mensagens.empty();
+            std::string buffer = mensagens.front();
+            mensagens.pop();
         sem_post(&mensagens_mutex);
 
-        while(!empty)
-        {
-            sem_wait(&mensagens_mutex);
-                const char* buffer = mensagens.front().c_str();
-                int buffer_size = mensagens.front().length();
-                mensagens.pop();
-                empty = mensagens.empty();
-            sem_post(&mensagens_mutex);
-
-            std::cout << buffer << "\n";
-            for (int i = 0; i < clients_size; ++i)
-            {
-                sem_wait(&clients_mutex);
-                    int socket_atual = clients[i]->socket;
-                sem_post(&clients_mutex);
-
-                write(socket_atual, buffer, buffer_size);
-            }
-
-        }
+        std::cout << buffer << "\n";
+        clientes.enviaParaTodos(buffer);
     }
 
     return NULL;
@@ -117,7 +87,15 @@ void* recebe_mensagem(void *socketp)
         printf("Esperando msg...\n");
 
         bzero(char_buffer,MAX_MSG);
-        read(socketfd,char_buffer,MAX_MSG-1);
+        if (read(socketfd,char_buffer,MAX_MSG-1) <= 0)
+        {
+            return NULL;
+        }
+
+        if (char_buffer[0] == '\\' && char_buffer[1] == 'c')
+        {
+            printf("Cliente fechou conexao\n");
+        }
 
         std::string string_buffer(char_buffer);
         sem_wait(&mensagens_mutex);
