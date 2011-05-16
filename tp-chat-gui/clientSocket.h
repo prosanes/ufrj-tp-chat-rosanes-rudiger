@@ -1,12 +1,12 @@
-#ifndef __CLIENTSOCKET_H__
-#define __CLIENTSOCKET_H__
+#ifndef CLIENTSOCKET_H
+#define CLIENTSOCKET_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -31,4 +31,4 @@ public:
     bool isConnected();
 };
 
-#endif
+#endif // CLIENTSOCKET_H
